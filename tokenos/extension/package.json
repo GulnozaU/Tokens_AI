@@ -1,0 +1,87 @@
+{
+  "name": "tokenos",
+  "displayName": "TokenOS",
+  "description": "Reduce AI coding costs by learning and reusing verified developer workflows",
+  "version": "0.1.0",
+  "publisher": "tokenos",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Machine Learning"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tokenos.openDashboard",
+        "title": "TokenOS: Open Dashboard",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "tokenos.simulateWorkflow",
+        "title": "TokenOS: Simulate Developer Workflow",
+        "icon": "$(play)"
+      },
+      {
+        "command": "tokenos.searchSkills",
+        "title": "TokenOS: Search Skills for Current Task",
+        "icon": "$(search)"
+      },
+      {
+        "command": "tokenos.recordPrompt",
+        "title": "TokenOS: Record AI Prompt (Mock)",
+        "icon": "$(comment)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tokenos-sidebar",
+          "title": "TokenOS",
+          "icon": "$(circuit-board)"
+        }
+      ]
+    },
+    "views": {
+      "tokenos-sidebar": [
+        {
+          "type": "webview",
+          "id": "tokenos.dashboard",
+          "name": "Dashboard"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TokenOS",
+      "properties": {
+        "tokenos.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "TokenOS backend API URL"
+        },
+        "tokenos.enableObserver": {
+          "type": "boolean",
+          "default": true,
+          "description": "Monitor file edits, terminal commands, and git changes"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile && npm run build:webview",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build:webview": "cd webview && npm install && npm run build",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}

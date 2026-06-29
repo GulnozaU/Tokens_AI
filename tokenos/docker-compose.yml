@@ -1,0 +1,23 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./tokenos.db
+      - CORS_ORIGINS=*
+      - DEFAULT_MONTHLY_COST_BEFORE=50.0
+      - DEFAULT_MONTHLY_COST_AFTER=18.0
+    volumes:
+      - tokenos_data:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  tokenos_data:

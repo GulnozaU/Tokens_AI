@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "tokenos": {
+      "command": "python",
+      "args": ["mcp-server/server.py"],
+      "env": {
+        "TOKENOS_API_URL": "http://localhost:8000/api"
+      }
+    }
+  }
+}
