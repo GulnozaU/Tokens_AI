@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TokenOS</title>
+  <meta name="description" content="TokenOS learns your dev workflows and reuses them to cut LLM token costs in VS Code, Cursor, and MCP agents." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="logo">TokenOS</div>
+      <nav>
+        <a href="#how">How it works</a>
+        <a href="#setup">Setup</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container">
+      <h1>Make AI coding agents cheaper over time</h1>
+      <p>
+        TokenOS records successful fixes, turns them into reusable skills,
+        and serves a shorter prompt the next time the same problem appears.
+      </p>
+
+      <!-- Auto-loop demo -->
+      <div class="demo-loop" aria-label="Product demo">
+        <div class="demo-topbar">
+          <div class="demo-dots"><span></span><span></span><span></span></div>
+          <span class="demo-frame-label" id="demo-label">1 · The problem</span>
+        </div>
+        <div class="demo-body">
+          <div class="demo-pane">
+            <div class="demo-pane-title">Terminal</div>
+            <div class="demo-lines" id="demo-left"></div>
+          </div>
+          <div class="demo-pane">
+            <div class="demo-pane-title">TokenOS</div>
+            <div class="demo-lines" id="demo-right"></div>
+          </div>
+        </div>
+        <div class="demo-progress">
+          <div class="demo-step active">Problem</div>
+          <div class="demo-step">Learn</div>
+          <div class="demo-step">Reuse</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="container">
+        <h2>How it works</h2>
+        <ol class="steps-list">
+          <li>
+            <span class="step-num">01</span>
+            <div class="step-body">
+              <h3>Observe</h3>
+              <p>The VS Code extension tracks file edits, commands, and prompts during a session.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">02</span>
+            <div class="step-body">
+              <h3>Extract</h3>
+              <p>After a successful fix, an agent extracts a named skill with triggers and steps.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">03</span>
+            <div class="step-body">
+              <h3>Store</h3>
+              <p>Skills are embedded, scored, and promoted when confidence is high enough.</p>
+            </div>
+          </li>
+          <li>
+            <span class="step-num">04</span>
+            <div class="step-body">
+              <h3>Reuse</h3>
+              <p>On the next similar task, TokenOS matches the skill and returns a compressed prompt.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="setup">
+      <div class="container">
+        <h2>Connect to your IDE</h2>
+
+        <div class="setup-block">
+          <h3>1. Clone and add keys</h3>
+          <p>Create <code>.env.local</code> at the project root with your API keys.</p>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre>git clone &lt;your-repo-url&gt; Tokens_AI
+cd Tokens_AI
+cp .env.example .env.local
+
+# .env.local
+GOOGLE_API_KEY=your_key
+GROQ_API_KEY=your_key          # optional fallback
+GEMINI_MODEL=gemini-flash-latest</pre>
+          </div>
+        </div>
+
+        <div class="setup-block">
+          <h3>2. Start the backend</h3>
+          <p>API runs on port 8000.</p>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre>npm install
+npm run dev
+
+# or: docker compose up --build
+# or: cd backend && uvicorn app.main:app --reload --port 8000</pre>
+          </div>
+          <p style="font-size:0.85rem;color:var(--mist);margin-top:0.5rem">
+            Check: <code>curl localhost:8000/health</code>
+          </p>
+        </div>
+
+        <div class="setup-block">
+          <h3>3. Run the extension</h3>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre>cd extension
+npm install
+npm run compile</pre>
+          </div>
+          <p style="font-size:0.9rem;color:var(--mist);margin-top:0.5rem">
+            Open <code>extension/</code> in VS Code → press <strong style="color:var(--white)">F5</strong>.
+          </p>
+
+          <div class="tabs">
+            <button class="tab active">VS Code</button>
+            <button class="tab">Cursor</button>
+          </div>
+          <div class="tab-panel active">
+            <ul class="cmd-list">
+              <li><strong style="color:var(--white)">TokenOS: Simulate Developer Workflow</strong> — seed demo skills</li>
+              <li><strong style="color:var(--white)">TokenOS: AI Optimize Task</strong> — get a compressed prompt</li>
+              <li><strong style="color:var(--white)">TokenOS: Open Dashboard</strong> — view savings</li>
+            </ul>
+          </div>
+          <div class="tab-panel">
+            <p style="margin-top:0.75rem">Same extension works in Cursor. Add the MCP config below so agents can call TokenOS directly.</p>
+          </div>
+        </div>
+
+        <div class="setup-block">
+          <h3>4. MCP (Cursor / Claude)</h3>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre>cd mcp-server && pip install -r requirements.txt</pre>
+          </div>
+          <p style="font-size:0.9rem;color:var(--mist);margin:0.75rem 0">Add to <code>.cursor/mcp.json</code>:</p>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre>{
+  "mcpServers": {
+    "tokenos": {
+      "command": "python",
+      "args": ["/absolute/path/to/Tokens_AI/mcp-server/server.py"],
+      "env": {
+        "TOKENOS_API_URL": "http://localhost:8000/api"
+      }
+    }
+  }
+}</pre>
+          </div>
+          <p style="font-size:0.85rem;color:var(--mist);margin-top:0.5rem">
+            Tools: <code>optimize_task</code> · <code>search_skills</code> · <code>create_skill</code> · <code>evaluate_skill</code> · <code>get_savings</code>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">TokenOS · MIT</div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

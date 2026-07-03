@@ -1,32 +1,110 @@
-const API_BASE = "http://localhost:8000";
+/* Auto-looping demo — no user input */
 
-const DEMO_STEPS = [
-  { text: "Recording workflow: JWT login failing…", type: "agent", delay: 400 },
-  { text: "Security Agent: redacted secrets from logs", type: "agent", delay: 700 },
-  { text: "Skill Extractor (Gemini): extracted \"Fix JWT expiry on login\"", type: "agent", delay: 900 },
-  { text: "Evaluator: confidence 98/100 — promoted to library", type: "success", delay: 600 },
-  { text: "Optimizer: matched your task to saved skill (71% similarity)", type: "agent", delay: 800 },
-  { text: "Result: ~3,000 tokens saved vs full LLM discovery", type: "save", delay: 500 },
+const FRAMES = [
+  {
+    label: "1 · The problem",
+    left: [
+      { text: "> my login token expires immediately", cls: "prompt" },
+      { text: "", cls: "dim" },
+      { text: "Sending full context to LLM…", cls: "dim" },
+      { text: "Scanning 12 files across the repo", cls: "dim" },
+      { text: "Re-discovering auth flow from scratch", cls: "dim" },
+      { text: "Tokens used: 3,800", cls: "highlight" },
+    ],
+    right: [
+      { text: "Cost: ~$0.11 per request", cls: "highlight" },
+      { text: "Same workflow repeated every time", cls: "dim" },
+      { text: "No memory of past fixes", cls: "dim" },
+    ],
+  },
+  {
+    label: "2 · TokenOS learns",
+    left: [
+      { text: "Workflow recorded", cls: "dim" },
+      { text: "→ edited auth.ts, jwt.ts", cls: "prompt" },
+      { text: "→ ran npm test --grep auth", cls: "prompt" },
+      { text: "Skill extracted: Fix JWT expiry on login", cls: "highlight" },
+      { text: "Promoted to library (98/100)", cls: "save" },
+    ],
+    right: [
+      { text: "Triggers saved:", cls: "dim" },
+      { text: "  jwt, login issue, token expired", cls: "prompt" },
+      { text: "Steps saved:", cls: "dim" },
+      { text: "  1. inspect middleware", cls: "prompt" },
+      { text: "  2. check token expiry", cls: "prompt" },
+      { text: "  3. verify JWT_SECRET", cls: "prompt" },
+    ],
+  },
+  {
+    label: "3 · Next time",
+    left: [
+      { text: "> my login token expires immediately", cls: "prompt" },
+      { text: "", cls: "dim" },
+      { text: "TokenOS: skill matched (71%)", cls: "highlight" },
+      { text: "Strategy: reuse_skill", cls: "save" },
+      { text: "Optimized prompt ready", cls: "dim" },
+    ],
+    right: [
+      { text: "Follow: Fix JWT expiry on login", cls: "highlight" },
+      { text: "Inspect auth middleware,", cls: "prompt" },
+      { text: "check expiry logic, verify env,", cls: "prompt" },
+      { text: "run auth test suite.", cls: "prompt" },
+      { text: "", cls: "dim" },
+      { text: "Tokens: 400  (was 3,800)", cls: "save" },
+      { text: "Saved: 3,400 tokens · 89%", cls: "save" },
+    ],
+  },
 ];
 
-const MOCK_RESULT = {
-  strategy: "reuse_skill",
-  reasoning:
-    "Your task matches a verified JWT debugging workflow. Reusing it skips expensive code exploration.",
-  estimated_full_tokens: 3800,
-  estimated_optimized_tokens: 400,
-  tokens_saved: 3400,
-  optimized_prompt:
-    "Follow verified workflow \"Fix JWT expiry on login\": inspect auth middleware, check token expiry logic, verify JWT_SECRET env var, run auth test suite.",
-  ai_powered: true,
-};
+const STEP_LABELS = ["Problem", "Learn", "Reuse"];
+const FRAME_MS = 4500;
+const LINE_MS = 350;
+
+let frameIndex = 0;
+let timer = null;
+
+function renderFrame(index) {
+  const frame = FRAMES[index];
+  const leftEl = document.getElementById("demo-left");
+  const rightEl = document.getElementById("demo-right");
+  const labelEl = document.getElementById("demo-label");
+  const steps = document.querySelectorAll(".demo-step");
+
+  labelEl.textContent = frame.label;
+  leftEl.innerHTML = "";
+  rightEl.innerHTML = "";
+
+  steps.forEach((s, i) => s.classList.toggle("active", i === index));
+
+  const allLines = [
+    ...frame.left.map((l) => ({ ...l, side: leftEl })),
+    ...frame.right.map((l) => ({ ...l, side: rightEl })),
+  ];
+
+  allLines.forEach((line, i) => {
+    const el = document.createElement("div");
+    el.className = `demo-line ${line.cls}`;
+    el.textContent = line.text || "\u00a0";
+    line.side.appendChild(el);
+    setTimeout(() => el.classList.add("visible"), i * LINE_MS);
+  });
+}
+
+function nextFrame() {
+  frameIndex = (frameIndex + 1) % FRAMES.length;
+  renderFrame(frameIndex);
+}
+
+function startLoop() {
+  renderFrame(0);
+  timer = setInterval(nextFrame, FRAME_MS);
+}
 
 function copyCode(btn) {
-  const block = btn.closest(".code-block");
-  const text = block.querySelector("pre").textContent;
+  const text = btn.closest(".code-block").querySelector("pre").textContent;
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = "Copied!";
-    setTimeout(() => (btn.textContent = "Copy"), 1500);
+    btn.textContent = "Copied";
+    setTimeout(() => (btn.textContent = "Copy"), 1200);
   });
 }
 
@@ -45,110 +123,10 @@ function initTabs() {
   });
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function addLog(container, text, type) {
-  const el = document.createElement("div");
-  el.className = `log-entry ${type}`;
-  el.textContent = text;
-  container.appendChild(el);
-  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-function showResult(data) {
-  const result = document.getElementById("demo-result");
-  const saved = data.tokens_saved ?? 0;
-  const full = data.estimated_full_tokens ?? 3800;
-  const opt = data.estimated_optimized_tokens ?? 400;
-  const pct = full > 0 ? Math.round((saved / full) * 100) : 0;
-
-  document.getElementById("result-strategy").textContent = data.strategy ?? "reuse_skill";
-  document.getElementById("result-saved").textContent = `~${saved.toLocaleString()} tokens`;
-  document.getElementById("result-reasoning").textContent = data.reasoning ?? "";
-  document.getElementById("result-prompt").textContent = data.optimized_prompt ?? "";
-  document.getElementById("bar-before").textContent = full.toLocaleString();
-  document.getElementById("bar-after").textContent = opt.toLocaleString();
-  document.getElementById("bar-fill").style.width = `${pct}%`;
-  document.getElementById("bar-pct").textContent = `${pct}% reduction`;
-
-  result.hidden = false;
-}
-
-async function checkLive() {
-  const status = document.getElementById("demo-status");
-  try {
-    const resp = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(2000) });
-    if (resp.ok) {
-      const data = await resp.json();
-      status.textContent = data.ai_optimization ? "Live API · AI on" : "Live API";
-      status.classList.add("live");
-      return true;
-    }
-  } catch {
-    /* offline demo */
-  }
-  status.textContent = "Offline demo";
-  return false;
-}
-
-async function runDemo() {
-  const btn = document.getElementById("run-demo");
-  const log = document.getElementById("demo-log");
-  const task = document.getElementById("demo-task").value.trim();
-  const result = document.getElementById("demo-result");
-
-  if (!task) return;
-
-  btn.disabled = true;
-  log.innerHTML = "";
-  result.hidden = true;
-
-  const isLive = await checkLive();
-
-  for (const step of DEMO_STEPS) {
-    await sleep(step.delay);
-    addLog(log, step.text, step.type);
-  }
-
-  if (isLive) {
-    try {
-      addLog(log, "Calling POST /api/optimize…", "agent");
-      const resp = await fetch(`${API_BASE}/api/optimize`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        showResult(data);
-        addLog(log, `Live result: ${data.strategy}, ${data.tokens_saved} tokens saved`, "success");
-        btn.disabled = false;
-        return;
-      }
-    } catch {
-      addLog(log, "API unreachable — showing cached result", "agent");
-    }
-  }
-
-  showResult({ ...MOCK_RESULT, reasoning: MOCK_RESULT.reasoning });
-  btn.disabled = false;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
+  startLoop();
   initTabs();
-  checkLive();
-
-  document.getElementById("run-demo").addEventListener("click", runDemo);
   document.querySelectorAll(".copy-btn").forEach((btn) => {
     btn.addEventListener("click", () => copyCode(btn));
-  });
-
-  document.querySelectorAll('a[href^="#"]').forEach((a) => {
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.querySelector(a.getAttribute("href"))?.scrollIntoView({ behavior: "smooth" });
-    });
   });
 });
