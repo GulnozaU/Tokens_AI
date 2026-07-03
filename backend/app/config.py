@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # LLM providers — set GOOGLE_API_KEY and/or GROQ_API_KEY
     google_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-flash-latest"
     embedding_model: str = "gemini-embedding-001"
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
