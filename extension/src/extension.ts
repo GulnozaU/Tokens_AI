@@ -72,11 +72,11 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Search skills for current task (skill retrieval before AI request)
+  // AI-optimize current task (search skills + Gemini prompt compression)
   context.subscriptions.push(
     vscode.commands.registerCommand('tokenos.searchSkills', async (query?: string) => {
       const task = query ?? await vscode.window.showInputBox({
-        prompt: 'Describe your current task (TokenOS will search for reusable skills)',
+        prompt: 'Describe your current task (TokenOS will AI-optimize before you call an LLM)',
         placeHolder: 'e.g. my login token expires',
       });
       if (!task) return;
@@ -84,46 +84,58 @@ export function activate(context: vscode.ExtensionContext): void {
       observer.recordPrompt(task);
 
       try {
-        const { results } = await client.searchSkills(task);
-        if (!results.length) {
-          vscode.window.showInformationMessage('TokenOS: No matching skills — full LLM workflow required.');
-          return;
-        }
-        const best = results[0];
-        const items = results.map((s) => ({
-          label: s.name,
-          description: `${((s.similarity ?? 0) * 100).toFixed(0)}% match · saves ~${s.avg_tokens_saved} tokens`,
-          detail: s.steps.join(' → '),
-          skill: s,
-        }));
-        const picked = await vscode.window.showQuickPick(items, {
-          title: `TokenOS found ${results.length} skill(s) for: "${task}"`,
-          placeHolder: 'Select a skill to reuse',
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: 'TokenOS: AI optimizing prompt...',
+            cancellable: false,
+          },
+          async () => client.optimizeTask(task)
+        ).then((result) => {
+          const aiLabel = result.ai_powered ? 'Gemini' : 'heuristic';
+          const saved = result.tokens_saved;
+          const content = [
+            `# TokenOS AI Optimization`,
+            ``,
+            `**Strategy:** ${result.strategy} (${aiLabel})`,
+            `**Tokens saved:** ~${saved} (${result.estimated_full_tokens} → ${result.estimated_optimized_tokens})`,
+            ``,
+            `## Reasoning`,
+            result.reasoning,
+            ``,
+            `## Optimized Prompt`,
+            `Copy this into your coding agent instead of a full discovery prompt:`,
+            ``,
+            '```',
+            result.optimized_prompt,
+            '```',
+          ].join('\n');
+
+          return vscode.workspace.openTextDocument({ content, language: 'markdown' })
+            .then((doc) => vscode.window.showTextDocument(doc, { preview: false }));
         });
-        if (picked) {
-          const steps = picked.skill.steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
-          const doc = await vscode.workspace.openTextDocument({
-            content: `# Reusing Skill: ${picked.skill.name}\n\n## Steps\n${steps}\n\n## Estimated tokens saved: ${picked.skill.avg_tokens_saved}\n`,
-            language: 'markdown',
-          });
-          await vscode.window.showTextDocument(doc, { preview: true });
-        }
       } catch (err) {
-        vscode.window.showErrorMessage(`TokenOS search failed: ${err}`);
+        vscode.window.showErrorMessage(`TokenOS optimization failed: ${err}`);
       }
     })
   );
 
-  // Record mock AI prompt
+  // Record AI prompt + response to current workflow session
   context.subscriptions.push(
     vscode.commands.registerCommand('tokenos.recordPrompt', async () => {
       const prompt = await vscode.window.showInputBox({
-        prompt: 'Enter the AI prompt to record (mock)',
+        prompt: 'Enter the AI prompt you sent',
       });
       if (!prompt) return;
+      const response = await vscode.window.showInputBox({
+        prompt: 'Paste the AI response (summary is fine)',
+        placeHolder: 'e.g. Found JWT expiry bug in auth.ts, updated refresh logic',
+      });
       observer.recordPrompt(prompt);
-      observer.recordAIResponse('Mock AI response: analyzed the issue and suggested a fix.');
-      vscode.window.showInformationMessage('TokenOS: Prompt recorded to current session.');
+      if (response) {
+        observer.recordAIResponse(response);
+      }
+      vscode.window.showInformationMessage('TokenOS: AI interaction recorded to current session.');
     })
   );
 

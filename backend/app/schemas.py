@@ -64,6 +64,25 @@ class SkillEvaluateRequest(BaseModel):
     notes: str = ""
 
 
+class OptimizeRequest(BaseModel):
+    task: str
+    limit: int = 3
+
+
+class OptimizeResponse(BaseModel):
+    task: str
+    strategy: str
+    optimized_prompt: str
+    reasoning: str
+    estimated_full_tokens: int
+    estimated_optimized_tokens: int
+    tokens_saved: int
+    ai_enabled: bool
+    ai_powered: bool = False
+    selected_skill: Optional[dict] = None
+    matched_skills: list[dict] = Field(default_factory=list)
+
+
 class DashboardResponse(BaseModel):
     cost_before: float
     cost_after: float

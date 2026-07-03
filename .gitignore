@@ -4,6 +4,7 @@ webview/dist/
 webview/node_modules/
 *.db
 .env
+.env.local
 .DS_Store
 *.vsix
 __pycache__/

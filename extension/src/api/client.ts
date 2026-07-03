@@ -36,6 +36,20 @@ export interface DashboardData {
   skills: Skill[];
 }
 
+export interface OptimizeResult {
+  task: string;
+  strategy: string;
+  optimized_prompt: string;
+  reasoning: string;
+  estimated_full_tokens: number;
+  estimated_optimized_tokens: number;
+  tokens_saved: number;
+  ai_enabled: boolean;
+  ai_powered: boolean;
+  selected_skill: Skill | null;
+  matched_skills: Skill[];
+}
+
 export class TokenOSClient {
   private baseUrl: string;
 
@@ -81,6 +95,10 @@ export class TokenOSClient {
 
   async searchSkills(query: string, limit = 5): Promise<{ results: Skill[] }> {
     return this.request('POST', '/api/skills/search', { query, limit });
+  }
+
+  async optimizeTask(task: string, limit = 3): Promise<OptimizeResult> {
+    return this.request('POST', '/api/optimize', { task, limit });
   }
 
   async getDashboard(): Promise<DashboardData> {

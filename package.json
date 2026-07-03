@@ -1,0 +1,15 @@
+{
+  "name": "tokenos",
+  "private": true,
+  "description": "TokenOS — AI cost optimizer for coding agents",
+  "scripts": {
+    "dev": "concurrently -n api,ext -c blue,green \"npm run dev:backend\" \"npm run dev:extension\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:extension": "cd extension && npm install && npm run watch",
+    "install:all": "npm install && cd backend && npm run setup && cd ../extension && npm install && cd webview && npm install",
+    "docker": "docker compose up --build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

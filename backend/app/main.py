@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import dashboard, demo, events, skills
+from app.routers import dashboard, demo, events, optimize, skills
 
 
 @asynccontextmanager
@@ -33,10 +33,18 @@ app.add_middleware(
 
 app.include_router(events.router, prefix="/api")
 app.include_router(skills.router, prefix="/api")
+app.include_router(optimize.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(demo.router, prefix="/api")
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "tokenos-api"}
+    from app.services.llm import active_providers, is_ai_enabled
+
+    return {
+        "status": "ok",
+        "service": "tokenos-api",
+        "ai_optimization": is_ai_enabled(),
+        "ai_providers": active_providers(),
+    }

@@ -33,6 +33,34 @@ def _api(method: str, path: str, **kwargs) -> dict:
 
 
 @mcp.tool()
+def optimize_task(query: str, limit: int = 3) -> str:
+    """
+    AI-optimize a developer task before sending it to an LLM.
+    Searches skill memory and returns a compressed, token-efficient prompt.
+
+    Args:
+        query: Natural language description of the current task
+        limit: Max skills to consider for reuse
+    """
+    result = _api("POST", "/optimize", json={"task": query, "limit": limit})
+    return json.dumps({
+        "strategy": result.get("strategy"),
+        "optimized_prompt": result.get("optimized_prompt"),
+        "reasoning": result.get("reasoning"),
+        "tokens_saved": result.get("tokens_saved", 0),
+        "estimated_full_tokens": result.get("estimated_full_tokens", 0),
+        "estimated_optimized_tokens": result.get("estimated_optimized_tokens", 0),
+        "ai_powered": result.get("ai_powered", False),
+        "selected_skill": result.get("selected_skill"),
+        "message": (
+            f"Optimized via {result.get('strategy')}. "
+            f"Saves ~{result.get('tokens_saved', 0)} tokens. "
+            f"Use optimized_prompt in your coding agent."
+        ),
+    }, indent=2)
+
+
+@mcp.tool()
 def search_skills(query: str, limit: int = 5) -> str:
     """
     Search for reusable skills matching a developer task or error message.

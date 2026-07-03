@@ -1,10 +1,6 @@
 """Skill Extraction Agent — analyzes successful workflows and produces reusable skills.
 
-Architecture:
-  1. Receives workflow events (task, files, commands, AI steps, result)
-  2. Security agent redacts any secrets
-  3. Heuristic + pattern analysis extracts skill name, triggers, and steps
-  4. Estimates token savings based on workflow complexity
+Uses Gemini when GOOGLE_API_KEY is set; falls back to heuristics otherwise.
 """
 
 import json
@@ -12,9 +8,9 @@ import re
 from typing import Any
 
 from app.agents.security_agent import sanitize_workflow
+from app.services.llm import estimate_tokens, generate_json, is_ai_enabled
 
-
-# Domain keyword → skill category mapping for demo-quality extraction
+# Heuristic fallback mappings
 _DOMAIN_KEYWORDS: dict[str, list[str]] = {
     "auth": ["auth", "jwt", "login", "token", "session", "oauth", "password"],
     "database": ["migration", "database", "sql", "postgres", "sqlite", "schema", "query"],
@@ -22,6 +18,28 @@ _DOMAIN_KEYWORDS: dict[str, list[str]] = {
     "test": ["test", "spec", "jest", "pytest", "unittest", "coverage"],
     "deploy": ["deploy", "docker", "ci", "cd", "kubernetes", "build"],
     "debug": ["bug", "fix", "error", "debug", "crash", "exception", "issue"],
+}
+
+_EXTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "description": "Concise skill name"},
+        "trigger_patterns": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Phrases/errors that should trigger this skill",
+        },
+        "steps": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Ordered reusable workflow steps",
+        },
+        "estimated_tokens_saved": {
+            "type": "integer",
+            "description": "Tokens saved vs re-discovering this workflow from scratch",
+        },
+    },
+    "required": ["name", "trigger_patterns", "steps", "estimated_tokens_saved"],
 }
 
 
@@ -46,7 +64,6 @@ def _generate_skill_name(task: str, domain: str) -> str:
         "general": "Developer Workflow",
     }
     base = names.get(domain, "Developer Workflow")
-    # Personalize if task is short enough
     task_clean = re.sub(r"[^\w\s]", "", task).strip()
     if len(task_clean) < 40:
         return f"{base} — {task_clean.title()}" if task_clean else base
@@ -54,16 +71,14 @@ def _generate_skill_name(task: str, domain: str) -> str:
 
 
 def _extract_trigger_patterns(task: str, ai_steps: list[str], files: list[str]) -> list[str]:
-    """Derive trigger patterns from task text and workflow context."""
     patterns: list[str] = []
     text = f"{task} {' '.join(ai_steps)} {' '.join(files)}".lower()
 
-    for domain, keywords in _DOMAIN_KEYWORDS.items():
+    for _domain, keywords in _DOMAIN_KEYWORDS.items():
         for kw in keywords:
             if kw in text and kw not in patterns:
                 patterns.append(kw)
 
-    # Add task phrases (2-3 word chunks)
     words = re.findall(r"\w+", task.lower())
     for i in range(len(words) - 1):
         phrase = f"{words[i]} {words[i+1]}"
@@ -76,7 +91,6 @@ def _extract_trigger_patterns(task: str, ai_steps: list[str], files: list[str]) 
 def _extract_steps(
     ai_steps: list[str], commands: list[str], files: list[str]
 ) -> list[str]:
-    """Combine AI steps, commands, and file changes into ordered skill steps."""
     steps: list[str] = []
 
     for step in ai_steps:
@@ -100,20 +114,13 @@ def _extract_steps(
 
 
 def _estimate_tokens_saved(steps: list[str], commands: list[str]) -> int:
-    """Estimate tokens saved by reusing this skill vs re-discovering workflow."""
     base = 40
     base += len(steps) * 12
     base += len(commands) * 8
     return min(base, 200)
 
 
-def extract_skill_from_workflow(event: dict[str, Any]) -> dict[str, Any]:
-    """
-    Main extraction entry point.
-    Input: workflow event dict
-    Output: skill dict ready for persistence
-    """
-    clean = sanitize_workflow(event)
+def _heuristic_extract(clean: dict[str, Any]) -> dict[str, Any]:
     task = clean.get("task", "")
     ai_steps = clean.get("ai_steps", [])
     commands = clean.get("commands", [])
@@ -132,8 +139,67 @@ def extract_skill_from_workflow(event: dict[str, Any]) -> dict[str, Any]:
         "steps": steps,
         "success_rate": 0.94 if success else 0.5,
         "avg_tokens_saved": tokens_saved,
-        "source_event": {
-            "task": task,
-            "success": success,
-        },
+        "source_event": {"task": task, "success": success},
+        "ai_powered": False,
     }
+
+
+def _ai_extract(clean: dict[str, Any]) -> dict[str, Any] | None:
+    task = clean.get("task", "")
+    ai_steps = clean.get("ai_steps", [])
+    commands = clean.get("commands", [])
+    files = clean.get("files_changed", [])
+    success = clean.get("success", False)
+    tokens_used = clean.get("tokens_used", 0)
+    result = clean.get("result", "")
+
+    prompt = f"""Extract a reusable developer skill from this completed workflow.
+
+Task: {task}
+Success: {success}
+Result: {result}
+Tokens used in original workflow: {tokens_used}
+AI steps taken:
+{json.dumps(ai_steps, indent=2)}
+Commands run:
+{json.dumps(commands, indent=2)}
+Files changed:
+{json.dumps(files, indent=2)}
+
+Produce a skill that future agents can reuse when similar issues appear.
+- name: specific and actionable (e.g. "Fix JWT expiry on login")
+- trigger_patterns: 4-8 short phrases developers might type or errors they see
+- steps: 3-8 ordered, imperative steps (what to do, not what was thought)
+- estimated_tokens_saved: realistic savings vs re-running full discovery (typically 500-4000)"""
+
+    extracted = generate_json(prompt, _EXTRACT_SCHEMA)
+    if not extracted:
+        return None
+
+    provider = extracted.pop("_provider", "ai")
+    tokens_saved = int(extracted.get("estimated_tokens_saved", 0))
+    if tokens_used and tokens_saved > tokens_used:
+        tokens_saved = int(tokens_used * 0.75)
+
+    return {
+        "name": extracted["name"],
+        "trigger_patterns": extracted["trigger_patterns"][:8],
+        "steps": extracted["steps"][:10],
+        "success_rate": 0.94 if success else 0.5,
+        "avg_tokens_saved": tokens_saved,
+        "source_event": {"task": task, "success": success},
+        "ai_powered": True,
+        "ai_provider": provider,
+    }
+
+
+def extract_skill_from_workflow(event: dict[str, Any]) -> dict[str, Any]:
+    """Main extraction entry point."""
+    clean = sanitize_workflow(event)
+
+    if is_ai_enabled():
+        ai_result = _ai_extract(clean)
+        if ai_result:
+            return ai_result
+
+    return _heuristic_extract(clean)

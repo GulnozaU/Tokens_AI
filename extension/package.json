@@ -26,12 +26,12 @@
       },
       {
         "command": "tokenos.searchSkills",
-        "title": "TokenOS: Search Skills for Current Task",
-        "icon": "$(search)"
+        "title": "TokenOS: AI Optimize Task",
+        "icon": "$(sparkle)"
       },
       {
         "command": "tokenos.recordPrompt",
-        "title": "TokenOS: Record AI Prompt (Mock)",
+        "title": "TokenOS: Record AI Interaction",
         "icon": "$(comment)"
       }
     ],
