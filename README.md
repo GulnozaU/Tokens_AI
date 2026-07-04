@@ -1,67 +1,177 @@
 # TokenOS
+**Workflow memory for AI coding agents — learn a fix once, reuse it instead of rediscovering it every time.**
 
-**Make AI coding agents cheaper, faster, and smarter over time.**
+TokenOS watches successful developer + AI sessions, turns them into reusable **skills**, and serves a shorter prompt the next time a similar task appears.
 
-TokenOS is a VS Code extension + backend that learns successful developer + AI workflows, turns them into reusable verified skills, and reuses them instead of spending expensive LLM tokens repeatedly.
+---
+
+## Problem
+
+AI coding agents (Cursor, Copilot, Claude Code) are good at solving problems — but they **forget**.
+
+Every time you hit the same bug, the agent:
+- Re-reads your codebase from scratch
+- Re-explores the same files and commands
+- Burns tokens repeating work you already did
+
+There is no persistent memory of *what actually worked* in your project.
+
+---
+
+## Solution
+
+TokenOS adds a **skill layer** between your editor and the LLM:
+
+- **Learn** — capture successful workflows (files, commands, AI steps, outcome)
+- **Extract** — an agent turns each workflow into a named, searchable skill
+- **Reuse** — on the next similar task, match the skill and return a compressed prompt
+- **Improve** — skills are scored and promoted when they work reliably
+
+Same fix. Less rediscovery. Fewer tokens.
+
+---
+
+## How it works
+
+```
+Observe  →  Extract  →  Store  →  Retrieve  →  Reuse
+   │            │          │           │           │
+   │            │          │           │           └─ Shorter prompt to the coding agent
+   │            │          │           └─ Semantic search finds the best skill
+   │            │          └─ Skills saved with embeddings + confidence score
+   │            └─ LLM extracts triggers, steps, and token estimate
+   └─ Extension records edits, commands, prompts, results
+```
+
+---
+
+## Demo (start here)
+
+This is the fastest way to see TokenOS end-to-end. **~2 minutes.**
+
+### 1. Start the backend
+
+```bash
+docker compose up --build
+```
+
+Wait until `http://localhost:8000/health` returns `"status": "ok"`.
+
+### 2. Open the extension
+
+```bash
+cd extension && npm install && npm run compile
+```
+
+Open the `extension/` folder in VS Code → press **F5** (Extension Development Host).
+
+### 3. Run the demo
+
+In the new VS Code window:
+
+1. Open the **TokenOS** sidebar (circuit-board icon)
+2. Command Palette → **`TokenOS: Simulate Developer Workflow`**
+3. Watch the pipeline:
+   - A developer workflow is recorded (e.g. JWT auth bug fix)
+   - **Skill Extractor** creates a skill with triggers and steps
+   - **Security Agent** redacts secrets before storage
+   - **Evaluator** scores the skill and promotes it if confidence is high
+4. Command Palette → **`TokenOS: AI Optimize Task`**
+5. Enter: `my login token expires immediately`
+6. TokenOS matches the saved skill and returns an **optimized prompt** — reuse instead of full discovery
+
+### What judges should look for
+
+| Step | What happens |
+|------|----------------|
+| Simulate | Skill extracted from a completed workflow |
+| Optimize | Similar task matched to stored skill |
+| Result | Compressed prompt with reuse strategy + estimated token savings |
+
+Three built-in scenarios: **Auth bug**, **DB migration**, **API 500 error**.
+
+---
+
+## Features
+
+| Component | What it does |
+|-----------|--------------|
+| **Observer** | Tracks file edits, commands, and AI interactions during a session |
+| **Skill Extraction** | Gemini/Groq agent analyzes workflows → named skills with triggers + steps |
+| **Skill Retrieval** | Embedding search finds the best skill before an LLM call |
+| **Optimizer** | Compresses the user task into a reuse-ready prompt |
+| **Security** | Redacts API keys, tokens, and credentials before anything is stored |
+| **Evaluator** | Scores skills 0–100; promotes reliable ones to the library |
+| **MCP Integration** | Exposes skills to Cursor/Claude agents via Model Context Protocol |
+
+---
+
+## Quick Start
+
+```bash
+# 1. Backend
+docker compose up --build
+
+# 2. Extension (new terminal)
+cd extension && npm install && npm run compile
+# Open extension/ in VS Code → F5
+
+# 3. Demo
+# TokenOS: Simulate Developer Workflow
+# TokenOS: AI Optimize Task
+```
+
+**Live website + hosted API:** deploy to Vercel — the landing page includes a one-command install and a live optimize demo.
+
+---
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                   VS Code Extension                      │
-│  Activity Observer │ Dashboard │ Demo Mode │ MCP Client  │
+│              VS Code / Cursor Extension                    │
+│     Observer │ Dashboard │ Demo │ AI Optimize             │
 └──────────────────────────┬──────────────────────────────┘
                            │ HTTP
 ┌──────────────────────────▼──────────────────────────────┐
 │                   FastAPI Backend                        │
-│  Skill Extractor │ Security Agent │ Evaluator │ Search  │
+│   Extractor │ Optimizer │ Security │ Evaluator │ Search│
 │              SQLite + Vector Embeddings                  │
 └──────────────────────────┬──────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────┐
 │                   MCP Server (stdio)                     │
-│  search_skills │ retrieve_skill │ create_skill │ ...   │
+│        optimize_task │ search_skills │ evaluate_skill    │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+---
 
-### 1. Start the Backend
+## Advanced setup
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
+<details>
+<summary><strong>API keys (real AI optimization)</strong></summary>
 
-Or without Docker:
+Copy `.env.example` to `.env.local` at the project root:
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+GOOGLE_API_KEY=your_key
+GROQ_API_KEY=your_key          # optional fallback
+GEMINI_MODEL=gemini-flash-latest
 ```
 
-API docs: http://localhost:8000/docs
+For Vercel: add the same variables in **Project → Settings → Environment Variables**, then redeploy.
 
-### 2. Run the VS Code Extension
+</details>
+
+<details>
+<summary><strong>MCP server (Cursor / Claude Code)</strong></summary>
 
 ```bash
-cd extension
-npm install
-npm run compile
+cd mcp-server && pip install -r requirements.txt
 ```
 
-Press **F5** in VS Code to launch the Extension Development Host.
-
-Or build the full dashboard webview:
-
-```bash
-npm run build:webview
-```
-
-### 3. Configure MCP Server (Cursor / Claude Code)
-
-Add to your MCP config (`.cursor/mcp.json` or Claude Desktop config):
+Add to `.cursor/mcp.json`:
 
 ```json
 {
@@ -77,95 +187,45 @@ Add to your MCP config (`.cursor/mcp.json` or Claude Desktop config):
 }
 ```
 
-Install MCP dependencies:
+**Tools:** `optimize_task` · `search_skills` · `create_skill` · `evaluate_skill` · `get_savings`
 
-```bash
-cd mcp-server
-pip install -r requirements.txt
-```
+</details>
 
-## Demo Mode
-
-1. Open the **TokenOS** sidebar in VS Code (circuit-board icon)
-2. Click **"Simulate Developer Workflow"**
-3. Watch the full pipeline:
-   - Workflow events recorded
-   - Skill extracted by the Skill Extraction Agent
-   - Security Agent redacts any secrets
-   - Evaluation Agent scores and promotes the skill
-   - Future reuse demonstrated via embedding search
-
-Try the three demo scenarios: **Auth Bug**, **DB Migration**, **API 500**.
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| **Activity Observer** | Monitors file edits, terminal commands, git changes, prompts |
-| **Skill Extraction Agent** | Analyzes successful workflows → reusable skills |
-| **Skill Retrieval** | Embedding similarity search before AI requests |
-| **Security Agent** | Redacts API keys, passwords, secrets before storage |
-| **Evaluation Agent** | Scores skills 0-100, promotes above 80 |
-| **Token Savings Dashboard** | Before/after cost, reduction %, skill leaderboard |
-| **MCP Server** | 5 tools for AI agent integration |
-
-## MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `search_skills(query)` | Find skills by semantic similarity |
-| `retrieve_skill(skill_id)` | Get full skill details |
-| `create_skill(...)` | Create a new skill (secrets auto-redacted) |
-| `evaluate_skill(skill_id, ...)` | Score and promote a skill |
-| `get_savings()` | Token/cost savings summary |
-
-## API Endpoints
+<details>
+<summary><strong>API reference</strong></summary>
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Health check |
-| POST | `/api/events` | Record workflow event |
-| POST | `/api/skills/search` | Search skills by query |
-| GET | `/api/skills/{id}` | Retrieve skill |
-| POST | `/api/skills/evaluate` | Evaluate skill |
-| GET | `/api/dashboard` | Full dashboard data |
+| GET | `/health` | Health + AI status |
+| POST | `/api/optimize` | AI-optimize a task prompt |
+| POST | `/api/skills/search` | Find skills by similarity |
 | POST | `/api/demo/simulate` | Run demo workflow |
+| GET | `/api/dashboard` | Skills + savings data |
 
-## Extension Commands
+Full docs: `http://localhost:8000/docs`
 
-- `TokenOS: Open Dashboard` — Open savings dashboard
-- `TokenOS: Simulate Developer Workflow` — Run demo pipeline
-- `TokenOS: Search Skills for Current Task` — Find reusable skills
-- `TokenOS: Record AI Prompt (Mock)` — Record a mock AI interaction
+</details>
 
-## Environment Variables
-
-See `.env.example` for all configuration options.
-
-## Project Structure
+<details>
+<summary><strong>Project structure</strong></summary>
 
 ```
-├── backend/           # FastAPI + SQLite + agents
-│   └── app/
-│       ├── agents/    # Skill extractor, security, evaluator
-│       ├── routers/   # API routes
-│       └── services/  # Embeddings, skill store
-├── mcp-server/        # Python MCP server
-├── extension/         # VS Code extension
-│   ├── src/           # TypeScript extension code
-│   └── webview/       # React + Tailwind dashboard
-├── docker-compose.yml
-└── Dockerfile
+├── backend/       FastAPI agents + SQLite
+├── extension/     VS Code extension + dashboard webview
+├── mcp-server/    MCP tools for AI agents
+├── website/       Landing page + live demo
+└── docker-compose.yml
 ```
 
-## Hackathon Demo Script
+</details>
 
-1. **Show the problem**: "Developers spend $50/month on AI tokens repeating the same workflows"
-2. **Open TokenOS dashboard**: Show $50 → $18, 64% reduction
-3. **Click Simulate**: Watch JWT Auth skill get extracted and promoted
-4. **Search skills**: Type "my login token expires" → skill matched instantly
-5. **Show MCP**: AI agent calls `search_skills` and reuses the workflow
-6. **Result**: Same fix, 65 fewer tokens, no re-discovery needed
+---
+
+## Future work
+
+Cross-project skill sharing, team skill libraries, and tighter integration with agent runtimes so optimization happens automatically before every LLM call.
+
+---
 
 ## License
 
