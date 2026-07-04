@@ -108,44 +108,13 @@ function copyCode(btn) {
   });
 }
 
-function initTabs() {
-  document.querySelectorAll(".tabs").forEach((tabs) => {
-    const buttons = tabs.querySelectorAll(".tab");
-    const panels = tabs.parentElement.querySelectorAll(".tab-panel");
-    buttons.forEach((btn, i) => {
-      btn.addEventListener("click", () => {
-        buttons.forEach((b) => b.classList.remove("active"));
-        panels.forEach((p) => p.classList.remove("active"));
-        btn.classList.add("active");
-        panels[i].classList.add("active");
-      });
-    });
-  });
+function injectInstallCmd() {
+  const origin = window.location.origin;
+  const cmd = document.getElementById("install-cmd");
+  if (cmd) cmd.textContent = `curl -fsSL ${origin}/install.sh | TOKENOS_API=${origin} bash`;
 }
 
 const API = window.location.origin;
-
-function injectUrls() {
-  const origin = window.location.origin;
-  const el = document.getElementById("api-url-display");
-  if (el) el.textContent = origin;
-  const health = document.getElementById("health-url");
-  if (health) health.textContent = `${origin}/health`;
-  const ext = document.getElementById("extension-url-block");
-  if (ext) ext.textContent = origin;
-  const mcp = document.getElementById("mcp-config-block");
-  if (mcp) {
-    mcp.textContent = JSON.stringify({
-      mcpServers: {
-        tokenos: {
-          command: "python",
-          args: ["/absolute/path/to/Tokens_AI/mcp-server/server.py"],
-          env: { TOKENOS_API_URL: `${origin}/api` },
-        },
-      },
-    }, null, 2);
-  }
-}
 
 async function checkApi() {
   const status = document.getElementById("try-status");
@@ -155,9 +124,9 @@ async function checkApi() {
     const data = await resp.json();
     status.textContent = data.ai_optimization
       ? `API live · AI on (${(data.ai_providers || []).join(", ") || "ready"})`
-      : "API live · add GOOGLE_API_KEY in Vercel env vars for AI";
+      : "API live";
   } catch {
-    status.textContent = "API starting… redeploy with latest push if this persists";
+    status.textContent = "API offline — try again shortly";
   }
 }
 
@@ -181,12 +150,12 @@ async function runOptimize() {
     const data = await resp.json();
     result.innerHTML = `
       <div><strong>${data.strategy}</strong> · saved ~${data.tokens_saved.toLocaleString()} tokens</div>
-      <div style="color:var(--blue-light);margin:0.4rem 0">${data.reasoning}</div>
+      <div style="color:var(--muted);margin:0.4rem 0">${data.reasoning}</div>
       <div class="save-line">${data.optimized_prompt}</div>
     `;
     result.hidden = false;
-  } catch (err) {
-    result.innerHTML = `<div style="color:var(--blue-light)">Request failed — push latest code and redeploy on Vercel.</div>`;
+  } catch {
+    result.innerHTML = `<div style="color:var(--muted)">Request failed — try again in a moment.</div>`;
     result.hidden = false;
   }
   btn.disabled = false;
@@ -194,8 +163,7 @@ async function runOptimize() {
 
 document.addEventListener("DOMContentLoaded", () => {
   startLoop();
-  initTabs();
-  injectUrls();
+  injectInstallCmd();
   checkApi();
   document.getElementById("try-btn")?.addEventListener("click", runOptimize);
   document.querySelectorAll(".copy-btn").forEach((btn) => {

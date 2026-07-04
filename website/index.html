@@ -14,7 +14,7 @@
       <div class="logo">TokenOS</div>
       <nav>
         <a href="#how">How it works</a>
-        <a href="#setup">Setup</a>
+        <a href="#install">Install</a>
       </nav>
     </div>
   </header>
@@ -98,87 +98,15 @@
       </div>
     </section>
 
-    <section id="setup">
-      <div class="container">
-        <h2>Connect to your IDE</h2>
-        <p class="setup-intro">The API is hosted on this site — no local backend needed. Point your extension or MCP client at <code id="api-url-display">this URL</code>.</p>
-
-        <div class="setup-block">
-          <h3>1. Add API keys on Vercel</h3>
-          <p>In your Vercel project → Settings → Environment Variables, add:</p>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre>GOOGLE_API_KEY=your_key
-GROQ_API_KEY=your_key          # optional fallback
-GEMINI_MODEL=gemini-flash-latest</pre>
-          </div>
-          <p style="font-size:0.85rem;color:var(--blue-light);margin-top:0.5rem">
-            Redeploy after adding keys. Check: <code id="health-url">/health</code>
-          </p>
+    <section id="install">
+      <div class="container install-section">
+        <h2>Install</h2>
+        <p>One command. Then open VS Code, press <strong>F5</strong>, and run <strong>TokenOS: AI Optimize Task</strong>.</p>
+        <div class="code-block">
+          <button class="copy-btn">Copy</button>
+          <pre id="install-cmd">curl -fsSL https://your-app.vercel.app/install.sh | bash</pre>
         </div>
-
-        <div class="setup-block">
-          <h3>2. Install the extension</h3>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre>git clone &lt;your-repo-url&gt; Tokens_AI
-cd Tokens_AI/extension
-npm install && npm run compile</pre>
-          </div>
-          <p style="font-size:0.9rem;color:var(--blue-light);margin-top:0.5rem">
-            Open <code>extension/</code> in VS Code → press <strong class="highlight-text">F5</strong>.
-          </p>
-        </div>
-
-        <div class="setup-block">
-          <h3>3. Point extension at this deployment</h3>
-          <p>VS Code → Settings → search <code>tokenos.apiUrl</code> — set to your hosted URL:</p>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre id="extension-url-block">https://your-app.vercel.app</pre>
-          </div>
-
-          <div class="tabs">
-            <button class="tab active">VS Code</button>
-            <button class="tab">Cursor</button>
-          </div>
-          <div class="tab-panel active">
-            <ul class="cmd-list">
-              <li><strong class="highlight-text">TokenOS: AI Optimize Task</strong> — get a compressed prompt</li>
-              <li><strong class="highlight-text">TokenOS: Simulate Developer Workflow</strong> — seed demo skills</li>
-              <li><strong class="highlight-text">TokenOS: Open Dashboard</strong> — view savings</li>
-            </ul>
-          </div>
-          <div class="tab-panel">
-            <p style="margin-top:0.75rem">Same extension in Cursor. Add MCP config below for agent-native optimization.</p>
-          </div>
-        </div>
-
-        <div class="setup-block">
-          <h3>4. MCP (Cursor / Claude)</h3>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre>cd mcp-server && pip install -r requirements.txt</pre>
-          </div>
-          <p style="font-size:0.9rem;color:var(--blue-light);margin:0.75rem 0">Add to <code>.cursor/mcp.json</code>:</p>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre id="mcp-config-block">{
-  "mcpServers": {
-    "tokenos": {
-      "command": "python",
-      "args": ["/absolute/path/to/Tokens_AI/mcp-server/server.py"],
-      "env": {
-        "TOKENOS_API_URL": "https://your-app.vercel.app/api"
-      }
-    }
-  }
-}</pre>
-          </div>
-          <p style="font-size:0.85rem;color:var(--blue-light);margin-top:0.5rem">
-            Tools: <code>optimize_task</code> · <code>search_skills</code> · <code>create_skill</code> · <code>evaluate_skill</code> · <code>get_savings</code>
-          </p>
-        </div>
+        <p class="install-note">No local backend needed — the extension uses the hosted API on this site.</p>
       </div>
     </section>
   </main>
