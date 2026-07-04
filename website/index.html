@@ -49,6 +49,17 @@
           <div class="demo-step">Reuse</div>
         </div>
       </div>
+
+      <!-- Live API — runs on this same Vercel deployment -->
+      <div class="try-live" id="try-live">
+        <p class="try-label">Try the live API</p>
+        <div class="try-row">
+          <input id="try-input" class="try-input" type="text" value="my login token expires immediately" />
+          <button id="try-btn" class="try-btn">Optimize</button>
+        </div>
+        <p id="try-status" class="try-status">Checking API…</p>
+        <div id="try-result" class="try-result" hidden></div>
+      </div>
     </section>
 
     <section id="how">
@@ -90,50 +101,42 @@
     <section id="setup">
       <div class="container">
         <h2>Connect to your IDE</h2>
+        <p class="setup-intro">The API is hosted on this site — no local backend needed. Point your extension or MCP client at <code id="api-url-display">this URL</code>.</p>
 
         <div class="setup-block">
-          <h3>1. Clone and add keys</h3>
-          <p>Create <code>.env.local</code> at the project root with your API keys.</p>
+          <h3>1. Add API keys on Vercel</h3>
+          <p>In your Vercel project → Settings → Environment Variables, add:</p>
           <div class="code-block">
             <button class="copy-btn">Copy</button>
-            <pre>git clone &lt;your-repo-url&gt; Tokens_AI
-cd Tokens_AI
-cp .env.example .env.local
-
-# .env.local
-GOOGLE_API_KEY=your_key
+            <pre>GOOGLE_API_KEY=your_key
 GROQ_API_KEY=your_key          # optional fallback
 GEMINI_MODEL=gemini-flash-latest</pre>
           </div>
-        </div>
-
-        <div class="setup-block">
-          <h3>2. Start the backend</h3>
-          <p>API runs on port 8000.</p>
-          <div class="code-block">
-            <button class="copy-btn">Copy</button>
-            <pre>npm install
-npm run dev
-
-# or: docker compose up --build
-# or: cd backend && uvicorn app.main:app --reload --port 8000</pre>
-          </div>
           <p style="font-size:0.85rem;color:var(--blue-light);margin-top:0.5rem">
-            Check: <code>curl localhost:8000/health</code>
+            Redeploy after adding keys. Check: <code id="health-url">/health</code>
           </p>
         </div>
 
         <div class="setup-block">
-          <h3>3. Run the extension</h3>
+          <h3>2. Install the extension</h3>
           <div class="code-block">
             <button class="copy-btn">Copy</button>
-            <pre>cd extension
-npm install
-npm run compile</pre>
+            <pre>git clone &lt;your-repo-url&gt; Tokens_AI
+cd Tokens_AI/extension
+npm install && npm run compile</pre>
           </div>
           <p style="font-size:0.9rem;color:var(--blue-light);margin-top:0.5rem">
             Open <code>extension/</code> in VS Code → press <strong class="highlight-text">F5</strong>.
           </p>
+        </div>
+
+        <div class="setup-block">
+          <h3>3. Point extension at this deployment</h3>
+          <p>VS Code → Settings → search <code>tokenos.apiUrl</code> — set to your hosted URL:</p>
+          <div class="code-block">
+            <button class="copy-btn">Copy</button>
+            <pre id="extension-url-block">https://your-app.vercel.app</pre>
+          </div>
 
           <div class="tabs">
             <button class="tab active">VS Code</button>
@@ -141,13 +144,13 @@ npm run compile</pre>
           </div>
           <div class="tab-panel active">
             <ul class="cmd-list">
-              <li><strong class="highlight-text">TokenOS: Simulate Developer Workflow</strong> — seed demo skills</li>
               <li><strong class="highlight-text">TokenOS: AI Optimize Task</strong> — get a compressed prompt</li>
+              <li><strong class="highlight-text">TokenOS: Simulate Developer Workflow</strong> — seed demo skills</li>
               <li><strong class="highlight-text">TokenOS: Open Dashboard</strong> — view savings</li>
             </ul>
           </div>
           <div class="tab-panel">
-            <p style="margin-top:0.75rem">Same extension works in Cursor. Add the MCP config below so agents can call TokenOS directly.</p>
+            <p style="margin-top:0.75rem">Same extension in Cursor. Add MCP config below for agent-native optimization.</p>
           </div>
         </div>
 
@@ -160,13 +163,13 @@ npm run compile</pre>
           <p style="font-size:0.9rem;color:var(--blue-light);margin:0.75rem 0">Add to <code>.cursor/mcp.json</code>:</p>
           <div class="code-block">
             <button class="copy-btn">Copy</button>
-            <pre>{
+            <pre id="mcp-config-block">{
   "mcpServers": {
     "tokenos": {
       "command": "python",
       "args": ["/absolute/path/to/Tokens_AI/mcp-server/server.py"],
       "env": {
-        "TOKENOS_API_URL": "http://localhost:8000/api"
+        "TOKENOS_API_URL": "https://your-app.vercel.app/api"
       }
     }
   }

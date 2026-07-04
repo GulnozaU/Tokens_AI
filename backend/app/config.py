@@ -1,5 +1,6 @@
 """TokenOS backend configuration."""
 
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings
@@ -8,8 +9,14 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _default_database_url() -> str:
+    if os.getenv("VERCEL"):
+        return "sqlite:////tmp/tokenos.db"
+    return "sqlite:///./tokenos.db"
+
+
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./tokenos.db"
+    database_url: str = _default_database_url()
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     embedding_dim: int = 384

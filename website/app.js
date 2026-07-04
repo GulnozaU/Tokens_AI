@@ -123,9 +123,81 @@ function initTabs() {
   });
 }
 
+const API = window.location.origin;
+
+function injectUrls() {
+  const origin = window.location.origin;
+  const el = document.getElementById("api-url-display");
+  if (el) el.textContent = origin;
+  const health = document.getElementById("health-url");
+  if (health) health.textContent = `${origin}/health`;
+  const ext = document.getElementById("extension-url-block");
+  if (ext) ext.textContent = origin;
+  const mcp = document.getElementById("mcp-config-block");
+  if (mcp) {
+    mcp.textContent = JSON.stringify({
+      mcpServers: {
+        tokenos: {
+          command: "python",
+          args: ["/absolute/path/to/Tokens_AI/mcp-server/server.py"],
+          env: { TOKENOS_API_URL: `${origin}/api` },
+        },
+      },
+    }, null, 2);
+  }
+}
+
+async function checkApi() {
+  const status = document.getElementById("try-status");
+  try {
+    const resp = await fetch(`${API}/health`, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) throw new Error("down");
+    const data = await resp.json();
+    status.textContent = data.ai_optimization
+      ? `API live · AI on (${(data.ai_providers || []).join(", ") || "ready"})`
+      : "API live · add GOOGLE_API_KEY in Vercel env vars for AI";
+  } catch {
+    status.textContent = "API starting… redeploy with latest push if this persists";
+  }
+}
+
+async function runOptimize() {
+  const btn = document.getElementById("try-btn");
+  const input = document.getElementById("try-input");
+  const result = document.getElementById("try-result");
+  const task = input.value.trim();
+  if (!task) return;
+
+  btn.disabled = true;
+  result.hidden = true;
+
+  try {
+    const resp = await fetch(`${API}/api/optimize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task }),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    result.innerHTML = `
+      <div><strong>${data.strategy}</strong> · saved ~${data.tokens_saved.toLocaleString()} tokens</div>
+      <div style="color:var(--blue-light);margin:0.4rem 0">${data.reasoning}</div>
+      <div class="save-line">${data.optimized_prompt}</div>
+    `;
+    result.hidden = false;
+  } catch (err) {
+    result.innerHTML = `<div style="color:var(--blue-light)">Request failed — push latest code and redeploy on Vercel.</div>`;
+    result.hidden = false;
+  }
+  btn.disabled = false;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   startLoop();
   initTabs();
+  injectUrls();
+  checkApi();
+  document.getElementById("try-btn")?.addEventListener("click", runOptimize);
   document.querySelectorAll(".copy-btn").forEach((btn) => {
     btn.addEventListener("click", () => copyCode(btn));
   });

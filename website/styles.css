@@ -192,6 +192,88 @@ nav a {
   color: var(--beige);
 }
 
+/* ── Try live API ── */
+.try-live {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--blue-dark);
+  border: 1px solid var(--blue);
+  border-radius: 4px;
+}
+
+.try-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--blue-light);
+}
+
+.try-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.try-input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  background: var(--black);
+  border: 1px solid var(--blue);
+  border-radius: 3px;
+  color: var(--beige);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.try-input:focus {
+  outline: none;
+  border-color: var(--blue-light);
+}
+
+.try-btn {
+  padding: 0.6rem 1.1rem;
+  background: var(--blue);
+  color: var(--beige);
+  border: none;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+
+.try-btn:hover { background: var(--blue-light); }
+.try-btn:disabled { opacity: 0.5; cursor: wait; }
+
+.try-status {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--blue-light);
+}
+
+.try-result {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  background: var(--black);
+  border: 1px solid var(--blue);
+  border-radius: 3px;
+  font-size: 0.82rem;
+  color: var(--beige);
+  line-height: 1.5;
+}
+
+.try-result .save-line {
+  color: var(--beige-warm);
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.setup-intro {
+  color: var(--blue-light);
+  font-size: 0.95rem;
+  margin: -0.5rem 0 2rem;
+  max-width: 560px;
+}
+
 /* ── Sections ── */
 section {
   padding: 3.5rem 0;
