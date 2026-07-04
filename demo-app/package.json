@@ -1,0 +1,14 @@
+{
+  "name": "tokenos-demo-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TokenOS live demo — JWT auth bug to fix twice",
+  "scripts": {
+    "test": "node --test tests/auth.test.js",
+    "reset-bug": "node scripts/reset-bug.js",
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

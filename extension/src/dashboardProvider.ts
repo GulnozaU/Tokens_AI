@@ -5,12 +5,16 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { TokenOSClient } from './api/client';
+import { DemoResults, TokenOSClient } from './api/client';
 
 export class DashboardProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'tokenos.dashboard';
 
   private _view?: vscode.WebviewView;
+  private _pendingDemoResults: DemoResults | null = null;
+  private _demoRunning = false;
+  private _demoStep = '';
+  private _demoDetail?: string;
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -31,6 +35,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
     this.refreshDashboard();
+    this.replayDemoState();
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
@@ -43,6 +48,15 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
           break;
         case 'search':
           await vscode.commands.executeCommand('tokenos.searchSkills', msg.query);
+          break;
+        case 'runDemo':
+          await vscode.commands.executeCommand('tokenos.runDemo');
+          break;
+        case 'runKaggleDemo':
+          await vscode.commands.executeCommand('tokenos.runKaggleDemo');
+          break;
+        case 'startLiveDemoRound1':
+          await vscode.commands.executeCommand('tokenos.runDemo');
           break;
       }
     });
@@ -64,6 +78,60 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   postSimulationResult(result: unknown): void {
     this._view?.webview.postMessage({ type: 'simulation', result });
     this.refreshDashboard();
+  }
+
+  startDemoProgress(): void {
+    this._demoRunning = true;
+    this._demoStep = '';
+    this._demoDetail = undefined;
+    this._pendingDemoResults = null;
+    this._view?.webview.postMessage({ type: 'demoStart' });
+  }
+
+  postDemoProgress(step: string, detail?: string): void {
+    this._demoRunning = true;
+    this._demoStep = step;
+    this._demoDetail = detail;
+    this._view?.webview.postMessage({ type: 'demoProgress', step, detail });
+  }
+
+  postDemoResults(results: DemoResults): void {
+    this._demoRunning = false;
+    this._pendingDemoResults = results;
+    this._view?.webview.postMessage({ type: 'demoResults', results });
+  }
+
+  postDemoError(message: string): void {
+    this._demoRunning = false;
+    this._view?.webview.postMessage({ type: 'demoError', message });
+  }
+
+  clearDemoResults(): void {
+    this._demoRunning = false;
+    this._pendingDemoResults = null;
+    this._demoStep = '';
+    this._demoDetail = undefined;
+    this._view?.webview.postMessage({ type: 'demoClear' });
+  }
+
+  private replayDemoState(): void {
+    if (!this._view) return;
+    if (this._demoRunning) {
+      this._view.webview.postMessage({ type: 'demoStart' });
+      if (this._demoStep) {
+        this._view.webview.postMessage({
+          type: 'demoProgress',
+          step: this._demoStep,
+          detail: this._demoDetail,
+        });
+      }
+    }
+    if (this._pendingDemoResults) {
+      this._view.webview.postMessage({
+        type: 'demoResults',
+        results: this._pendingDemoResults,
+      });
+    }
   }
 
   private getHtml(webview: vscode.Webview): string {
@@ -153,9 +221,43 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     .btn:hover { opacity: 0.9; }
     .status { font-size: 0.75rem; color: #64748b; text-align: center; margin-top: 12px; }
     .error { color: #f87171; font-size: 0.8rem; padding: 8px; }
+    .demo-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0f1117;
+      padding: 24px 16px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .demo-overlay.active { display: block; }
+    .demo-spinner {
+      width: 36px;
+      height: 36px;
+      border: 2px solid #6366f1;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 40px auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .demo-step { text-align: center; color: #cbd5e1; font-size: 0.85rem; }
+    .demo-results h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.15em; color: #94a3b8; text-align: center; margin-bottom: 16px; }
+    .demo-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.85rem; }
+    .demo-row span:first-child { color: #94a3b8; }
+    .demo-row span:last-child { color: #e2e8f0; font-weight: 600; }
+    .demo-highlight { color: #4ade80 !important; }
+    .demo-accent { color: #818cf8 !important; font-size: 1rem !important; }
   </style>
 </head>
 <body>
+  <div id="demo-overlay" class="demo-overlay">
+    <div id="demo-progress">
+      <div class="demo-spinner"></div>
+      <p class="demo-step" id="demo-step">Starting demo...</p>
+    </div>
+    <div id="demo-results" class="demo-results" style="display:none"></div>
+  </div>
   <h1>⚡ TokenOS</h1>
   <p class="subtitle">AI Cost Optimizer</p>
   <div id="error" class="error" style="display:none"></div>
@@ -174,6 +276,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     <div id="skills-list"></div>
   </div>
   <button class="btn" onclick="simulate()">▶ Simulate Developer Workflow</button>
+  <button class="btn" style="background:linear-gradient(135deg,#059669,#0d9488);margin-top:8px" onclick="runDemo()">🎬 Run Demo (Kaggle)</button>
   <p class="status" id="status">Connecting to API...</p>
   <script>
     const vscode = acquireVsCodeApi();
@@ -181,8 +284,56 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       document.getElementById('status').textContent = 'Running simulation...';
       vscode.postMessage({ type: 'simulate', scenarioIndex: 0 });
     }
+    function runDemo() {
+      vscode.postMessage({ type: 'runKaggleDemo' });
+    }
+    function showDemoOverlay() {
+      document.getElementById('demo-overlay').classList.add('active');
+      document.getElementById('demo-progress').style.display = 'block';
+      document.getElementById('demo-results').style.display = 'none';
+    }
+    function showDemoResults(results) {
+      const tc = results.token_comparison || {};
+      const fmt = n => (n ?? 0).toLocaleString('en-US');
+      document.getElementById('demo-overlay').classList.add('active');
+      document.getElementById('demo-progress').style.display = 'none';
+      const el = document.getElementById('demo-results');
+      el.style.display = 'block';
+      el.innerHTML = [
+        '<h2>TokenOS Demo Results</h2>',
+        '<div class="demo-row"><span>Baseline Tokens</span><span>' + fmt(tc.baseline_tokens) + '</span></div>',
+        '<div class="demo-row"><span>Optimized Tokens</span><span>' + fmt(tc.optimized_tokens) + '</span></div>',
+        '<div class="demo-row"><span>Saved Tokens</span><span class="demo-highlight">' + fmt(tc.tokens_saved) + '</span></div>',
+        '<div class="demo-row"><span>Reduction</span><span class="demo-accent">' + (tc.reduction_percent ?? 0) + '%</span></div>',
+        '<div style="border-top:1px solid #2d3148;margin:12px 0"></div>',
+        '<div class="demo-row"><span>Skill Created</span><span>' + (results.skill_created || '—') + '</span></div>',
+        '<div class="demo-row"><span>Skill Reused</span><span class="demo-highlight">' + (results.skill_reused ? 'YES' : 'NO') + '</span></div>',
+        '<button class="btn" style="margin-top:16px" onclick="closeDemo()">Back to Dashboard</button>'
+      ].join('');
+    }
+    function closeDemo() {
+      document.getElementById('demo-overlay').classList.remove('active');
+      vscode.postMessage({ type: 'refresh' });
+    }
     window.addEventListener('message', e => {
       const msg = e.data;
+      if (msg.type === 'demoStart' || msg.type === 'demoProgress') {
+        showDemoOverlay();
+        if (msg.step) document.getElementById('demo-step').textContent = msg.step;
+      }
+      if (msg.type === 'demoResults') {
+        showDemoResults(msg.results);
+      }
+      if (msg.type === 'demoClear') {
+        document.getElementById('demo-overlay').classList.remove('active');
+      }
+      if (msg.type === 'demoError') {
+        showDemoOverlay();
+        document.getElementById('demo-progress').style.display = 'none';
+        const el = document.getElementById('demo-results');
+        el.style.display = 'block';
+        el.innerHTML = '<p style="color:#f87171;text-align:center">' + msg.message + '</p><button class="btn" onclick="closeDemo()">Back</button>';
+      }
       if (msg.type === 'dashboard') {
         const d = msg.data;
         document.getElementById('cost-before').textContent = '$' + d.cost_before.toFixed(0);

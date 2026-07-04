@@ -45,11 +45,13 @@ Observe  →  Extract  →  Store  →  Retrieve  →  Reuse
 
 ---
 
-## Demo (start here)
+## Demo — one button
 
-This is the fastest way to see TokenOS end-to-end. **~2 minutes.**
+1. Start backend: `npm run dev:backend` (or `docker compose up`)
+2. Open this repo in VS Code → F5 on `extension/` folder
+3. Click **▶ Run Demo** in the TokenOS sidebar
 
-### 1. Start the backend
+That's it. TokenOS will automatically fix a JWT bug, learn it, hit the same bug again, and show how many tokens it saved.
 
 ```bash
 docker compose up --build

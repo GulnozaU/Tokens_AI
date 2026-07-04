@@ -20,8 +20,8 @@
         "icon": "$(graph)"
       },
       {
-        "command": "tokenos.simulateWorkflow",
-        "title": "TokenOS: Simulate Developer Workflow",
+        "command": "tokenos.runDemo",
+        "title": "TokenOS: Run Demo",
         "icon": "$(play)"
       },
       {
@@ -30,9 +30,9 @@
         "icon": "$(sparkle)"
       },
       {
-        "command": "tokenos.recordPrompt",
-        "title": "TokenOS: Record AI Interaction",
-        "icon": "$(comment)"
+        "command": "tokenos.resetDemoState",
+        "title": "TokenOS: Reset Demo State",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -67,6 +67,34 @@
           "description": "Monitor file edits, terminal commands, and git changes"
         }
       }
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "tokenos.runDemo",
+          "when": "view == tokenos.dashboard",
+          "group": "navigation@0"
+        },
+        {
+          "command": "tokenos.resetDemoState",
+          "when": "view == tokenos.dashboard",
+          "group": "navigation@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "tokenos.runDemo",
+          "when": "true"
+        },
+        {
+          "command": "tokenos.searchSkills",
+          "when": "true"
+        },
+        {
+          "command": "tokenos.resetDemoState",
+          "when": "true"
+        }
+      ]
     }
   },
   "scripts": {

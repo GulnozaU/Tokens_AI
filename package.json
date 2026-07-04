@@ -5,12 +5,13 @@
   "scripts": {
     "dev": "concurrently -n api,ext -c blue,green \"npm run dev:backend\" \"npm run dev:extension\"",
     "dev:backend": "cd backend && npm run dev",
-    "dev:extension": "cd extension && npm install && npm run watch",
+    "dev:extension": "cd extension && npm install && npm run build:webview && npm run watch",
     "website": "npx --yes serve website -l 3000",
     "build": "echo 'Static site — output in website/'",
     "vercel-build": "echo 'Deploying website + serverless API'",
     "install:all": "npm install && cd backend && npm run setup && cd ../extension && npm install && cd webview && npm install",
-    "docker": "docker compose up --build"
+    "docker": "docker compose up --build",
+    "package:extension": "cd extension && npm run compile && npm run build:webview && npx --yes @vscode/vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

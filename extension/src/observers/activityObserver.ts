@@ -118,12 +118,22 @@ export class ActivityObserver {
     }
   }
 
+  recordFileEdit(relPath: string): void {
+    if (!this.session) {
+      this.session = this.newSession('File edit workflow');
+    }
+    if (!this.session.files_changed.includes(relPath)) {
+      this.session.files_changed.push(relPath);
+    }
+    this.session.ai_steps.push(`edited file: ${relPath}`);
+  }
+
   recordTestResult(passed: boolean, output: string): void {
     if (!this.session) return;
     this.session.ai_steps.push(`tests ${passed ? 'passed' : 'failed'}: ${output.slice(0, 80)}`);
   }
 
-  async finalize(success: boolean, result: string, tokensUsed = 0): Promise<unknown | null> {
+  async finalize(success: boolean, result: string, tokensUsed = 0): Promise<{ id: number } | null> {
     if (!this.session) return null;
 
     const event: WorkflowEvent = {
@@ -137,11 +147,58 @@ export class ActivityObserver {
     };
 
     try {
-      const recorded = await this.client.recordEvent(event);
+      const recorded = await this.client.recordEvent(event) as { id: number };
       this.session = null;
       return recorded;
     } catch (err) {
       vscode.window.showErrorMessage(`TokenOS: Failed to record event — ${err}`);
+      return null;
+    }
+  }
+
+  async finalizeAndExtractSkill(
+    success: boolean,
+    result: string,
+    tokensUsed = 0
+  ): Promise<{
+    eventId: number;
+    skill: { id: number; name: string };
+    evaluation: { promoted?: boolean; confidence_score?: number };
+  } | null> {
+    const session = this.session;
+    if (!session) {
+      vscode.window.showWarningMessage('TokenOS: No active session. Start a live demo first.');
+      return null;
+    }
+
+    const executionTimeMs = Date.now() - session.startTime.getTime();
+    const recorded = await this.finalize(success, result, tokensUsed);
+    if (!recorded?.id) return null;
+
+    try {
+      const extracted = await this.client.extractSkill(recorded.id);
+      const skill = extracted.skill;
+      if (!skill?.id) return null;
+
+      const evaluation = await this.client.evaluateSkill({
+        skill_id: skill.id,
+        success,
+        execution_time_ms: executionTimeMs,
+        tokens_used: tokensUsed,
+        tokens_saved: success ? 3500 : 0,
+        notes: 'Live demo session — skill extracted from real workflow',
+      });
+
+      return {
+        eventId: recorded.id,
+        skill: { id: skill.id, name: skill.name },
+        evaluation: {
+          promoted: evaluation.promoted,
+          confidence_score: evaluation.confidence_score,
+        },
+      };
+    } catch (err) {
+      vscode.window.showErrorMessage(`TokenOS: Skill extraction failed — ${err}`);
       return null;
     }
   }

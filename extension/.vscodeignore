@@ -1,0 +1,11 @@
+src/**
+tsconfig.json
+webview/src/**
+webview/node_modules/**
+webview/package-lock.json
+webview/tsconfig.json
+webview/vite.config.ts
+webview/postcss.config.js
+webview/tailwind.config.js
+**/*.map
+.gitignore
