@@ -9,33 +9,35 @@
 <body>
   <header class="page-header">
     <a href="../" class="back-link">← TokenOS</a>
-    <h1>Interactive demo</h1>
-    <button id="play-btn" class="play-btn">▶ Play demo</button>
+    <h1>Try it yourself</h1>
+    <button id="restart-btn" class="play-btn ghost">↻ Restart</button>
   </header>
 
+  <div class="step-coach" id="step-coach">
+    <span class="step-num" id="step-num">1 / 7</span>
+    <span class="step-hint" id="step-hint">Click the chat box and send the message below</span>
+  </div>
+
   <div class="cursor-window" id="cursor-window">
-    <!-- Title bar -->
     <div class="titlebar">
       <div class="traffic"><span></span><span></span><span></span></div>
       <span class="titlebar-text">demo-app — Cursor</span>
     </div>
 
     <div class="workspace">
-      <!-- Activity bar -->
       <div class="activity-bar">
-        <div class="act-icon active" title="Explorer">📁</div>
+        <div class="act-icon active" id="explorer-tab" data-action="explorer" title="Explorer">📁</div>
         <div class="act-icon" title="Search">🔍</div>
-        <div class="act-icon tokenos-icon" id="tokenos-tab" title="TokenOS">⚡</div>
+        <div class="act-icon tokenos-icon" id="tokenos-tab" data-action="tokenos" title="TokenOS">⚡</div>
       </div>
 
-      <!-- Sidebar -->
       <aside class="sidebar" id="sidebar-explorer">
         <div class="sidebar-title">EXPLORER</div>
         <div class="tree">
           <div class="tree-item open">▼ demo-app</div>
           <div class="tree-item indent">▼ src</div>
-          <div class="tree-item indent2 active" id="file-jwt">jwt.js</div>
-          <div class="tree-item indent2">auth.js</div>
+          <div class="tree-item indent2" id="file-jwt" data-action="open-jwt">jwt.js</div>
+          <div class="tree-item indent2" id="file-auth" data-action="open-auth">auth.js</div>
           <div class="tree-item indent">server.js</div>
         </div>
       </aside>
@@ -43,52 +45,49 @@
       <aside class="sidebar tokenos-panel hidden" id="sidebar-tokenos">
         <div class="sidebar-title">TOKENOS</div>
         <div class="tokenos-content" id="tokenos-content">
-          <p class="tos-muted">Skills will appear here…</p>
+          <p class="tos-muted">Complete a fix — skills show up here.</p>
         </div>
       </aside>
 
-      <!-- Editor -->
       <main class="editor-area">
         <div class="tab-bar">
-          <div class="tab active">jwt.js</div>
+          <div class="tab active" id="tab-jwt">jwt.js</div>
         </div>
         <pre class="code-editor" id="code-editor"><code id="code-content"></code></pre>
+        <button class="editor-action hidden" id="apply-fix-btn" data-action="apply-fix">Apply fix to jwt.js</button>
         <div class="toast hidden" id="toast"></div>
       </main>
 
-      <!-- Chat panel -->
       <aside class="chat-panel" id="chat-panel">
         <div class="chat-header">Cursor Chat</div>
         <div class="chat-messages" id="chat-messages"></div>
-        <div class="chat-input-fake">
-          <span id="chat-typing"></span><span class="caret" id="chat-caret">|</span>
+        <div class="chat-compose" id="chat-compose">
+          <input id="chat-input" type="text" placeholder="Ask Cursor anything…" autocomplete="off" />
+          <button id="chat-send" type="button" data-action="send-chat" title="Send">↑</button>
         </div>
+        <p class="chat-suggestion hidden" id="chat-suggestion">
+          Suggested: <button type="button" class="suggest-btn" id="suggest-btn">my JWT token keeps expiring on login</button>
+        </p>
       </aside>
     </div>
 
-    <!-- Status bar -->
     <div class="statusbar">
-      <span id="status-left">main</span>
+      <span>main</span>
       <span class="status-tokens" id="status-tokens">Tokens: 0</span>
-      <span id="status-right">TokenOS</span>
+      <span>TokenOS</span>
     </div>
 
-    <!-- Results overlay -->
     <div class="results-overlay hidden" id="results-overlay">
       <div class="results-card">
         <p class="results-emoji">✅</p>
-        <h2>TokenOS saved 89% tokens</h2>
-        <p class="results-sub">Learned the fix once. Reused it the second time.</p>
-        <div class="results-stats">
-          <div><span class="stat-label">First fix</span><span class="stat-val bad">3,800 tokens</span></div>
-          <div><span class="stat-label">With TokenOS</span><span class="stat-val good">420 tokens</span></div>
-        </div>
-        <button id="replay-btn" class="play-btn">↻ Play again</button>
+        <h2>You saved 89% tokens</h2>
+        <p class="results-sub">First fix: 3,800 tokens · With TokenOS: 420 tokens</p>
+        <button id="replay-btn" class="play-btn">Try again</button>
       </div>
     </div>
   </div>
 
-  <p class="caption" id="caption">Click <strong>Play demo</strong> to watch TokenOS work inside Cursor.</p>
+  <p class="caption" id="caption">Follow the steps — click like you would in real Cursor.</p>
 
   <script src="demo.js"></script>
 </body>
