@@ -8,9 +8,7 @@
     "vscode": "^1.85.0"
   },
   "categories": ["Other", "Machine Learning"],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -20,19 +18,14 @@
         "icon": "$(graph)"
       },
       {
-        "command": "tokenos.runDemo",
-        "title": "TokenOS: Run Demo",
-        "icon": "$(play)"
-      },
-      {
         "command": "tokenos.searchSkills",
         "title": "TokenOS: AI Optimize Task",
         "icon": "$(sparkle)"
       },
       {
-        "command": "tokenos.resetDemoState",
-        "title": "TokenOS: Reset Demo State",
-        "icon": "$(refresh)"
+        "command": "tokenos.recordPrompt",
+        "title": "TokenOS: Record AI Interaction",
+        "icon": "$(comment)"
       }
     ],
     "viewsContainers": {
@@ -67,34 +60,6 @@
           "description": "Monitor file edits, terminal commands, and git changes"
         }
       }
-    },
-    "menus": {
-      "view/title": [
-        {
-          "command": "tokenos.runDemo",
-          "when": "view == tokenos.dashboard",
-          "group": "navigation@0"
-        },
-        {
-          "command": "tokenos.resetDemoState",
-          "when": "view == tokenos.dashboard",
-          "group": "navigation@1"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "tokenos.runDemo",
-          "when": "true"
-        },
-        {
-          "command": "tokenos.searchSkills",
-          "when": "true"
-        },
-        {
-          "command": "tokenos.resetDemoState",
-          "when": "true"
-        }
-      ]
     }
   },
   "scripts": {

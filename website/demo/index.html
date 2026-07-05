@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TokenOS Demo — Cursor Simulation</title>
+  <link rel="stylesheet" href="demo.css" />
+</head>
+<body>
+  <header class="page-header">
+    <a href="../" class="back-link">← TokenOS</a>
+    <h1>Interactive demo</h1>
+    <button id="play-btn" class="play-btn">▶ Play demo</button>
+  </header>
+
+  <div class="cursor-window" id="cursor-window">
+    <!-- Title bar -->
+    <div class="titlebar">
+      <div class="traffic"><span></span><span></span><span></span></div>
+      <span class="titlebar-text">demo-app — Cursor</span>
+    </div>
+
+    <div class="workspace">
+      <!-- Activity bar -->
+      <div class="activity-bar">
+        <div class="act-icon active" title="Explorer">📁</div>
+        <div class="act-icon" title="Search">🔍</div>
+        <div class="act-icon tokenos-icon" id="tokenos-tab" title="TokenOS">⚡</div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar-explorer">
+        <div class="sidebar-title">EXPLORER</div>
+        <div class="tree">
+          <div class="tree-item open">▼ demo-app</div>
+          <div class="tree-item indent">▼ src</div>
+          <div class="tree-item indent2 active" id="file-jwt">jwt.js</div>
+          <div class="tree-item indent2">auth.js</div>
+          <div class="tree-item indent">server.js</div>
+        </div>
+      </aside>
+
+      <aside class="sidebar tokenos-panel hidden" id="sidebar-tokenos">
+        <div class="sidebar-title">TOKENOS</div>
+        <div class="tokenos-content" id="tokenos-content">
+          <p class="tos-muted">Skills will appear here…</p>
+        </div>
+      </aside>
+
+      <!-- Editor -->
+      <main class="editor-area">
+        <div class="tab-bar">
+          <div class="tab active">jwt.js</div>
+        </div>
+        <pre class="code-editor" id="code-editor"><code id="code-content"></code></pre>
+        <div class="toast hidden" id="toast"></div>
+      </main>
+
+      <!-- Chat panel -->
+      <aside class="chat-panel" id="chat-panel">
+        <div class="chat-header">Cursor Chat</div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-fake">
+          <span id="chat-typing"></span><span class="caret" id="chat-caret">|</span>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <span id="status-left">main</span>
+      <span class="status-tokens" id="status-tokens">Tokens: 0</span>
+      <span id="status-right">TokenOS</span>
+    </div>
+
+    <!-- Results overlay -->
+    <div class="results-overlay hidden" id="results-overlay">
+      <div class="results-card">
+        <p class="results-emoji">✅</p>
+        <h2>TokenOS saved 89% tokens</h2>
+        <p class="results-sub">Learned the fix once. Reused it the second time.</p>
+        <div class="results-stats">
+          <div><span class="stat-label">First fix</span><span class="stat-val bad">3,800 tokens</span></div>
+          <div><span class="stat-label">With TokenOS</span><span class="stat-val good">420 tokens</span></div>
+        </div>
+        <button id="replay-btn" class="play-btn">↻ Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="caption" id="caption">Click <strong>Play demo</strong> to watch TokenOS work inside Cursor.</p>
+
+  <script src="demo.js"></script>
+</body>
+</html>

@@ -50,28 +50,6 @@ export interface OptimizeResult {
   matched_skills: Skill[];
 }
 
-export interface TokenComparison {
-  simulated: boolean;
-  label: string;
-  baseline_tokens: number;
-  optimized_tokens: number;
-  tokens_saved: number;
-  reduction_percent: number;
-  workflow_steps_avoided: number;
-  ai_calls_reduced_percent: number;
-}
-
-export interface DemoResults {
-  phase: string;
-  scenario: string;
-  simulated: boolean;
-  token_comparison: TokenComparison;
-  skill_created: string;
-  skill_reused: boolean;
-  extracted_skill?: { name: string; confidence_score: number };
-  future_reuse?: { query: string; skill_reused: boolean; message: string };
-}
-
 export class TokenOSClient {
   private baseUrl: string;
 
@@ -127,19 +105,7 @@ export class TokenOSClient {
     return this.request('GET', '/api/dashboard');
   }
 
-  async simulateWorkflow(scenarioIndex = 0): Promise<unknown> {
-    return this.request('POST', `/api/demo/simulate?scenario_index=${scenarioIndex}`);
-  }
-
-  async resetDemo(): Promise<unknown> {
-    return this.request('POST', '/api/demo/reset');
-  }
-
-  async runKaggleDemo(): Promise<DemoResults> {
-    return this.request<DemoResults>('POST', '/api/demo/run-kaggle');
-  }
-
-  async extractSkill(eventId: number): Promise<{ skill?: { id: number; name: string }; extracted_from?: number }> {
+  async extractSkill(eventId: number): Promise<{ skill?: { id: number; name: string } }> {
     return this.request('POST', `/api/events/${eventId}/extract-skill`);
   }
 
@@ -150,11 +116,7 @@ export class TokenOSClient {
     tokens_used?: number;
     tokens_saved?: number;
     notes?: string;
-  }): Promise<{
-    skill?: { id: number; name: string; promoted: boolean; confidence_score: number };
-    promoted?: boolean;
-    confidence_score?: number;
-  }> {
+  }): Promise<{ promoted?: boolean; confidence_score?: number }> {
     return this.request('POST', '/api/skills/evaluate', params);
   }
 }

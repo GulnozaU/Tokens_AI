@@ -45,52 +45,17 @@ Observe  →  Extract  →  Store  →  Retrieve  →  Reuse
 
 ---
 
-## Demo — one button
+## Demo (for recordings & judges)
 
-1. Start backend: `npm run dev:backend` (or `docker compose up`)
-2. Open this repo in VS Code → F5 on `extension/` folder
-3. Click **▶ Run Demo** in the TokenOS sidebar
-
-That's it. TokenOS will automatically fix a JWT bug, learn it, hit the same bug again, and show how many tokens it saved.
+**Runs entirely in the browser. No extension, no F5, no install.**
 
 ```bash
-docker compose up --build
+npm run demo
 ```
 
-Wait until `http://localhost:8000/health` returns `"status": "ok"`.
+Open **http://localhost:3000/demo/** — a simulated Cursor + TokenOS session plays automatically.
 
-### 2. Open the extension
-
-```bash
-cd extension && npm install && npm run compile
-```
-
-Open the `extension/` folder in VS Code → press **F5** (Extension Development Host).
-
-### 3. Run the demo
-
-In the new VS Code window:
-
-1. Open the **TokenOS** sidebar (circuit-board icon)
-2. Command Palette → **`TokenOS: Simulate Developer Workflow`**
-3. Watch the pipeline:
-   - A developer workflow is recorded (e.g. JWT auth bug fix)
-   - **Skill Extractor** creates a skill with triggers and steps
-   - **Security Agent** redacts secrets before storage
-   - **Evaluator** scores the skill and promotes it if confidence is high
-4. Command Palette → **`TokenOS: AI Optimize Task`**
-5. Enter: `my login token expires immediately`
-6. TokenOS matches the saved skill and returns an **optimized prompt** — reuse instead of full discovery
-
-### What judges should look for
-
-| Step | What happens |
-|------|----------------|
-| Simulate | Skill extracted from a completed workflow |
-| Optimize | Similar task matched to stored skill |
-| Result | Compressed prompt with reuse strategy + estimated token savings |
-
-Three built-in scenarios: **Auth bug**, **DB migration**, **API 500 error**.
+Deploy to Vercel and share **`yoursite.vercel.app/demo/`** for your video.
 
 ---
 

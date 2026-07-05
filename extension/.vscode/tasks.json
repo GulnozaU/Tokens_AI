@@ -5,8 +5,8 @@
       "label": "build-extension",
       "type": "shell",
       "command": "npm run compile && npm run build:webview",
-      "options": { "cwd": "${workspaceFolder}/extension" },
-      "group": { "kind": "build", "isDefault": true }
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build"
     }
   ]
 }

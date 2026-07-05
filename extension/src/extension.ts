@@ -1,22 +1,9 @@
 /**
  * TokenOS VS Code Extension — main entry point.
- *
- * Architecture:
- *   ActivityObserver → records workflow events
- *   Skill Extraction → via backend API agents
- *   Skill Retrieval → embedding search before AI requests
- *   Dashboard → React webview panel
- *   Demo Mode → simulate full workflow for presentations
  */
 
 import * as vscode from 'vscode';
 import { TokenOSClient } from './api/client';
-import {
-  getLastDemoResults,
-  resetDemoState,
-  runKaggleDemo,
-} from './demoRunner';
-import { runAutoLiveDemo } from './liveDemo';
 import { ActivityObserver } from './observers/activityObserver';
 import { DashboardProvider } from './dashboardProvider';
 
@@ -37,120 +24,6 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('tokenos.openDashboard', async () => {
       await vscode.commands.executeCommand('tokenos.dashboard.focus');
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('tokenos.runDemo', async () => {
-      await vscode.commands.executeCommand('tokenos.dashboard.focus');
-      dashboard.startDemoProgress();
-
-      try {
-        const results = await runAutoLiveDemo(
-          context.extensionUri,
-          client,
-          observer,
-          (step, detail) => dashboard.postDemoProgress(step, detail)
-        );
-        dashboard.postDemoResults(results);
-        await dashboard.refreshDashboard();
-        vscode.window.showInformationMessage(
-          `Demo done — TokenOS saved ~${results.token_comparison.reduction_percent}% tokens on the second fix`
-        );
-      } catch (err) {
-        dashboard.postDemoError(String(err));
-        vscode.window.showErrorMessage(`TokenOS demo failed: ${err}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('tokenos.simulateWorkflow', async (scenarioIndex?: number) => {
-      const idx = typeof scenarioIndex === 'number' ? scenarioIndex : 0;
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: 'TokenOS: Simulating developer workflow...',
-          cancellable: false,
-        },
-        async () => {
-          try {
-            const result = await client.simulateWorkflow(idx) as {
-              extracted_skill?: { name: string };
-              future_reuse?: { message: string };
-            };
-            dashboard.postSimulationResult(result);
-            const skillName = result.extracted_skill?.name ?? 'Skill';
-            const reuseMsg = result.future_reuse?.message ?? '';
-            vscode.window.showInformationMessage(
-              `TokenOS: Extracted "${skillName}" — ${reuseMsg}`,
-              'View Dashboard'
-            ).then((choice) => {
-              if (choice === 'View Dashboard') {
-                vscode.commands.executeCommand('tokenos.dashboard.focus');
-              }
-            });
-          } catch (err) {
-            vscode.window.showErrorMessage(
-              `TokenOS simulation failed. Is the backend running? (${err})`
-            );
-          }
-        }
-      );
-    })
-  );
-
-  // Kaggle one-click demo
-  context.subscriptions.push(
-    vscode.commands.registerCommand('tokenos.runKaggleDemo', async () => {
-      await vscode.commands.executeCommand('tokenos.dashboard.focus');
-      dashboard.startDemoProgress();
-
-      try {
-        const results = await runKaggleDemo(client, (step, detail) => {
-          dashboard.postDemoProgress(step, detail);
-        });
-        dashboard.postDemoResults(results);
-        await dashboard.refreshDashboard();
-        vscode.window.showInformationMessage(
-          `TokenOS Demo complete — ${results.token_comparison.reduction_percent}% token reduction`,
-          'Show Results'
-        ).then((choice) => {
-          if (choice === 'Show Results') {
-            vscode.commands.executeCommand('tokenos.showDemoResults');
-          }
-        });
-      } catch (err) {
-        dashboard.postDemoError(String(err));
-        vscode.window.showErrorMessage(`TokenOS Kaggle demo failed: ${err}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('tokenos.resetDemoState', async () => {
-      try {
-        await resetDemoState(client, (step) => dashboard.postDemoProgress(step));
-        dashboard.clearDemoResults();
-        await dashboard.refreshDashboard();
-        vscode.window.showInformationMessage('TokenOS: Demo state reset.');
-      } catch (err) {
-        vscode.window.showErrorMessage(`TokenOS reset failed: ${err}`);
-      }
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand('tokenos.showDemoResults', async () => {
-      await vscode.commands.executeCommand('tokenos.dashboard.focus');
-      const results = getLastDemoResults();
-      if (results) {
-        dashboard.postDemoResults(results);
-      } else {
-        vscode.window.showWarningMessage(
-          'No demo results yet. Run "TokenOS: Run Demo (Kaggle)" first.'
-        );
-      }
     })
   );
 
@@ -225,19 +98,6 @@ export function activate(context: vscode.ExtensionContext): void {
   statusBar.command = 'tokenos.openDashboard';
   statusBar.show();
   context.subscriptions.push(statusBar);
-
-  client.health().then((ok) => {
-    if (!ok) {
-      vscode.window.showWarningMessage(
-        'TokenOS: Backend not reachable. Run `npm run dev:backend` in the project root.',
-        'Run Demo'
-      ).then((choice) => {
-        if (choice === 'Run Demo') {
-          vscode.commands.executeCommand('tokenos.runDemo');
-        }
-      });
-    }
-  });
 }
 
 export function deactivate(): void {
